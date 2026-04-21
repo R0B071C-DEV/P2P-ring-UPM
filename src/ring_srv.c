@@ -15,6 +15,6 @@
 
 // función para el thread que implementa la funcionalidad de servidor
 // debe recibir como argumento el socket de servicio
-void *server_thread(void *arg){
+void *server_thread(void *arg){   
     return NULL;
 }
