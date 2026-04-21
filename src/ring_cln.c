@@ -17,18 +17,34 @@
 static int is_initialized(void);
 static int initialize(void);
 
+unsigned int mylocal_ip=0;
+unsigned int myremote_ip=0;
+unsigned short myremote_port=0;
+unsigned short *myalloc_port=NULL;
+
 // inicia el nodo añadiéndolo a la red P2P si ya está creada;
 // los puertos e IPs deben estar en formato de red;
 // debe devolver en el último parámetro el puerto reservado en formato red;
 // retorna 0 si OK y -1 si error
 int ring_init(const char *shrd_dir, unsigned int local_ip, unsigned int remote_ip, unsigned short remote_port, unsigned short *alloc_port) {
+    int s;
     if (initialize()) return -1; // ya está inicializada
+    if((s=create_socket_srv(alloc_port)) < 0) return -1;
+    fprintf(stdout,"Puerto %d reservado para nodo con con PID %d\n",*alloc_port,getpid());
+    create_thread(server_thread,(void*)(long)s);
     return 0;
 }
 // función local que devuelve la IP y el puerto del nodo;
 // retorna 0 si OK y -1 si error
 int ring_self(unsigned int *ip, unsigned short *port) {
     if (!is_initialized()) return -1; // no está inicializada
+    if(mylocal_ip==0 && myalloc_port==NULL){
+        return -1;
+    }
+    else{
+        ip=&mylocal_ip;
+        port=myalloc_port;
+    }
     return 0;
 }
 // devuelve el PID del nodo remoto especificado o -1 si error
