@@ -24,6 +24,7 @@ typedef struct ring_cln
     unsigned int myremote_ip;
     unsigned short myremote_port;
     unsigned short myalloc_port;
+    int service_s;
 }ring_cln;
 
 ring_cln self;
@@ -41,6 +42,9 @@ int ring_init(const char *shrd_dir, unsigned int local_ip, unsigned int remote_i
     self.myremote_ip=remote_ip;
     self.myremote_port=remote_port;
     self.myalloc_port=*alloc_port;
+    self.service_s=s;
+    //printf("Iniciando server thread con s:%d\n",s);
+    create_thread(server_thread,(void*)s);
     return 0;
 }
 // función local que devuelve la IP y el puerto del nodo;
@@ -54,6 +58,7 @@ int ring_self(unsigned int *ip, unsigned short *port) {
 // devuelve el PID del nodo remoto especificado o -1 si error
 int ring_remote_pid(unsigned int remote_ip, unsigned short remote_port) {
     if (!is_initialized()) return -1; // no está inicializada
+
     return 0;
 }
 // función local que devuelve la IP y el puerto del nodo sucesor;
