@@ -13,7 +13,19 @@
 #include "ring.h"
 #include "common.h"
 
-enum oper {GET_RPID};
+enum oper {GET_RPID,NEW_NODE};
+
+typedef struct ring_cln
+{
+    const char *myshrd_dir;
+    unsigned int mylocal_ip;
+    unsigned int successor_ip;
+    unsigned short sucessor_port;
+    unsigned short myalloc_port;
+    int service_s;
+}ring_cln;
+
+extern ring_cln self;
 
 void* request_hdlr(void* arg);
 
@@ -56,7 +68,21 @@ void* request_hdlr(void* arg){
             int pid = htonl(getpid());
             if(write(soc,&pid,sizeof(int))!=sizeof(int)){
                 perror("error en el write");
+                break;
             }        
+        break;
+
+        case NEW_NODE:
+        unsigned int ip;
+        unsigned short port,incmg_nport;
+            ring_successor(&ip,&port);
+            //recibe puerto nuevo
+            if(recv(soc,&incmg_nport,sizeof(unsigned short*),MSG_WAITALL)!=sizeof(unsigned short*)){
+                perror("err recv [NEW_NODE]");
+                break;
+            }
+            //TODO guardar nuevo sucesor (IP y PORT)
+            //TODO mandar su sucesor actual al nuevo nodo
         break;
     }
     close(soc);
