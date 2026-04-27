@@ -14,6 +14,8 @@
 #include "ring.h"
 #include "common.h"
 
+enum oper {GET_RPID};
+
 static int is_initialized(void);
 static int initialize(void);
 
@@ -58,7 +60,20 @@ int ring_self(unsigned int *ip, unsigned short *port) {
 // devuelve el PID del nodo remoto especificado o -1 si error
 int ring_remote_pid(unsigned int remote_ip, unsigned short remote_port) {
     if (!is_initialized()) return -1; // no está inicializada
-
+    
+    int s, req, resp;
+    s=create_socket_cln(remote_ip,remote_port);
+    req = htonl(GET_RPID);
+    printf("Enviada petición ring_remote_pid\nEsperando respuesta...\n");
+    if(write(s,&req,sizeof(int))!=sizeof(int)){
+        perror("error en write [client]");
+    }
+    if(recv(s,&resp,sizeof(int),MSG_WAITALL)!=sizeof(int)){
+        perror("error en recv");
+        return -1;
+    }
+    resp=ntohl(resp);
+    printf("PID: %d\n",resp);
     return 0;
 }
 // función local que devuelve la IP y el puerto del nodo sucesor;
