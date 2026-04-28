@@ -29,13 +29,14 @@ extern ring_cln self;
 
 void* request_hdlr(void* arg);
 
+struct sockaddr_in clnt_addr;
 // función para el thread que implementa la funcionalidad de servidor
 // debe recibir como argumento el socket de servicio
 void *server_thread(void *arg){
     int s =(int)arg;
     int s_conec;
     unsigned int addr_size;
-    struct sockaddr_in clnt_addr;
+    
     while(1){
         addr_size=sizeof(clnt_addr);
         if((s_conec=accept(s,(struct sockaddr*)&clnt_addr, &addr_size))<0){
@@ -46,7 +47,6 @@ void *server_thread(void *arg){
         printf("conectado cliente con ip %s y puerto %u\n",
         inet_ntoa(clnt_addr.sin_addr),ntohs(clnt_addr.sin_port));
         create_thread(request_hdlr,(void *)(long)s_conec);
-        
     }
     close(s);
     return NULL;
@@ -74,15 +74,33 @@ void* request_hdlr(void* arg){
 
         case NEW_NODE:
         unsigned int ip;
-        unsigned short port,incmg_nport;
+        unsigned short port,s_port;
             ring_successor(&ip,&port);
             //recibe puerto nuevo
-            if(recv(soc,&incmg_nport,sizeof(unsigned short*),MSG_WAITALL)!=sizeof(unsigned short*)){
+            if(recv(soc,&s_port,sizeof(unsigned short),MSG_WAITALL)!=sizeof(unsigned short)){
                 perror("err recv [NEW_NODE]");
                 break;
             }
+            printf("Recibido service port: %u\n",ntohs(s_port));
+
+            printf("escribe succ ip: %s\n",inet_ntoa((struct in_addr){ip}));
+            ip=htonl(ip);
+            if(write(soc,&ip,sizeof(unsigned int))!=sizeof(unsigned int)){
+                perror("err write succ ip");
+                break;
+            }
+            
+            printf("escribe succ port: %u\n",ntohs(port));
+            port=htons(port);
+            if(write(soc,&port,sizeof(unsigned short))!=sizeof(unsigned short)){
+                perror("err write succ port");
+                break;
+            }
+            
             //TODO guardar nuevo sucesor (IP y PORT)
-            //TODO mandar su sucesor actual al nuevo nodo
+            self.successor_ip=clnt_addr.sin_addr.s_addr;
+            self.sucessor_port=s_port;
+            
         break;
     }
     close(soc);

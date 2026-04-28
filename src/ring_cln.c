@@ -44,34 +44,45 @@ int ring_init(const char *shrd_dir, unsigned int local_ip, unsigned int remote_i
     self.mylocal_ip=local_ip;
     self.myalloc_port=*alloc_port;
     self.service_s=s;
+
+    create_thread(server_thread,(void*)s);
+
     if(remote_ip!=0){//Si se pide unir un nodo
         //envía petición
         int soc,req; 
         soc = create_socket_cln(remote_ip,remote_port);
         req = htonl(NEW_NODE);
         if(write(soc,&req,sizeof(int))!=sizeof(int)){
-            perror("error en write [write de alloc_port]");
+            perror("error en write [write de req NEW_NODE]");
         }
-        //envía su alloc_port
-        unsigned short env_port = htons(*alloc_port);
-        if(write(soc,&env_port,sizeof(unsigned short))!=sizeof(unsigned short)){
-            perror("error en write [write de alloc_port]");
+        //envía su service_port
+        unsigned short s_port= *alloc_port;
+        if(write(soc,&s_port,sizeof(unsigned short))!=sizeof(unsigned short)){
+            perror("error en write [write de srv_sockt]");
         }
+        printf("enviado service port: %d\n",ntohs(s_port));
+
         //espera respuesta
         unsigned int nip;
         unsigned short nport; 
         if(recv(soc,&nip,sizeof(unsigned int),MSG_WAITALL)!=sizeof(unsigned int)){
             perror("error esperando ip sucesor");
         }
+        nip=ntohl(nip);
+
         if(recv(soc,&nport,sizeof(unsigned short),MSG_WAITALL)!=sizeof(unsigned short)){
             perror("error esperando port sucesor");
         }
+        nport=ntohs(nport);
+
+        self.successor_ip=nip;
+        self.successor_port=nport;
     }
     else{//de lo contrario, es él mismo
         self.successor_ip=local_ip;
-        self.successor_port=alloc_port;
+        self.successor_port=*alloc_port;
     }
-    create_thread(server_thread,(void*)s);
+    
     return 0;
 }
 // función local que devuelve la IP y el puerto del nodo;
@@ -104,6 +115,8 @@ int ring_remote_pid(unsigned int remote_ip, unsigned short remote_port) {
 // retorna 0 si OK y -1 si error
 int ring_successor(unsigned int *ip, unsigned short *port) {
     if (!is_initialized()) return -1; // no está inicializada
+    *ip=self.successor_ip;
+    *port=self.successor_port;
     return 0;
 }
 // devuelve la IP y el puerto del nodo sucesor del especificado;
