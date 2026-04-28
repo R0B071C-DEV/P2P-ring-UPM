@@ -13,7 +13,7 @@
 #include "ring.h"
 #include "common.h"
 
-enum oper {GET_RPID,NEW_NODE};
+enum oper {GET_RPID,NEW_NODE,REM_SUC};
 
 typedef struct ring_cln
 {
@@ -61,7 +61,7 @@ void* request_hdlr(void* arg){
         return NULL;
     }
     req=ntohl(req);
-    printf("Recibido request con valor %d\n",req);
+    //printf("Recibido request con valor %d\n",req);
 
     switch(req){
         case GET_RPID:
@@ -73,24 +73,24 @@ void* request_hdlr(void* arg){
         break;
 
         case NEW_NODE:
-        unsigned int ip;
-        unsigned short port,s_port;
+            unsigned int ip;
+            unsigned short port,s_port;
             ring_successor(&ip,&port);
             //recibe puerto nuevo
             if(recv(soc,&s_port,sizeof(unsigned short),MSG_WAITALL)!=sizeof(unsigned short)){
                 perror("err recv [NEW_NODE]");
                 break;
             }
-            printf("Recibido service port: %u\n",ntohs(s_port));
+            //printf("Recibido service port: %u\n",ntohs(s_port));
 
-            printf("escribe succ ip: %s\n",inet_ntoa((struct in_addr){ip}));
+            //printf("escribe succ ip: %s\n",inet_ntoa((struct in_addr){ip}));
             ip=htonl(ip);
             if(write(soc,&ip,sizeof(unsigned int))!=sizeof(unsigned int)){
                 perror("err write succ ip");
                 break;
             }
             
-            printf("escribe succ port: %u\n",ntohs(port));
+            //printf("escribe succ port: %u\n",ntohs(port));
             port=htons(port);
             if(write(soc,&port,sizeof(unsigned short))!=sizeof(unsigned short)){
                 perror("err write succ port");
@@ -100,7 +100,26 @@ void* request_hdlr(void* arg){
             //TODO guardar nuevo sucesor (IP y PORT)
             self.successor_ip=clnt_addr.sin_addr.s_addr;
             self.sucessor_port=s_port;
-            
+        break;
+
+        case REM_SUC:
+            //revisa cuál es su sucesor
+            unsigned int suc_ip;
+            unsigned short suc_port;
+            ring_successor(&suc_ip,&suc_port);
+            //le envía su suc_ip
+            suc_ip = htonl(suc_ip);
+            if(write(soc,&suc_ip,sizeof(unsigned int))!=sizeof(unsigned int)){
+                perror("error al escribir ip de sucesor");
+                break;
+            }
+            //envia su suc_port
+            suc_port = ntohs(suc_port);
+            if(write(soc,&suc_port,sizeof(unsigned short))!=sizeof(unsigned short)){
+                perror("error al escribir puerto de sucesor");
+                break;
+            }
+
         break;
     }
     close(soc);

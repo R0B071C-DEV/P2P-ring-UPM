@@ -14,7 +14,7 @@
 #include "ring.h"
 #include "common.h"
 
-enum oper {GET_RPID,NEW_NODE};
+enum oper {GET_RPID,NEW_NODE,REM_SUC};
 
 static int is_initialized(void);
 static int initialize(void);
@@ -123,6 +123,27 @@ int ring_successor(unsigned int *ip, unsigned short *port) {
 // retorna 0 si OK y -1 si error
 int ring_remote_successor(unsigned int remote_ip, unsigned short remote_port, unsigned int *suc_ip, unsigned short *suc_port) {
     if (!is_initialized()) return -1; // no está inicializada
+    int s;
+    s = create_socket_cln(remote_ip,remote_port);
+    //envia peticion para revisar el nodo sucesor de un nodo remoto
+    int req = htonl(REM_SUC);
+    if(write(s,&req,sizeof(unsigned int))!=sizeof(unsigned int)){
+        perror("error al mandar pet. REM_SUC");
+        return -1;
+    }
+
+    if(recv(s,suc_ip,sizeof(unsigned int),MSG_WAITALL)!=sizeof(unsigned int)){
+        perror("error al recibir remote_ip");
+        return -1;
+    }
+    *suc_ip = ntohl(*suc_ip);
+
+    if(recv(s,suc_port,sizeof(unsigned short),MSG_WAITALL)!=sizeof(unsigned short)){
+        perror("error al recibir remote_port");
+        return -1;
+    }
+    *suc_port = ntohs(*suc_port);
+
     return 0;
 }
 // devuelve la IP y el puerto del nodo sucesor del sucesor del especificado;
