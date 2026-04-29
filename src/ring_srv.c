@@ -122,14 +122,14 @@ void* request_hdlr(void* arg){
         case SUCSUC:
             unsigned int suc_suc_ip;
             unsigned short suc_suc_port;
-            int soc, req;
+            int s_temp, req;
             //hacer peticion de remote_suc
             req = htonl(REM_SUC);
-            soc = create_socket_cln(self.successor_ip,self.sucessor_port);
-            write(soc,&req,sizeof(req));
+            s_temp = create_socket_cln(self.successor_ip,self.sucessor_port);
+            write(s_temp,&req,sizeof(req));
 
-            recv(soc,&suc_suc_ip,sizeof(unsigned int),MSG_WAITALL);
-            recv(soc,&suc_suc_port,sizeof(unsigned short),MSG_WAITALL);
+            recv(s_temp,&suc_suc_ip,sizeof(unsigned int),MSG_WAITALL);
+            recv(s_temp,&suc_suc_port,sizeof(unsigned short),MSG_WAITALL);
 
             iov[0].iov_base = &suc_suc_ip;
             iov[0].iov_len = sizeof(suc_suc_ip);

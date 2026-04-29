@@ -153,7 +153,9 @@ int ring_remote_successor_successor(unsigned int remote_ip, unsigned short remot
     int soc = create_socket_cln(remote_ip,remote_port);
     int req = htonl(SUCSUC);
 
-     if(recv(soc,suc_suc_ip,sizeof(unsigned int),MSG_WAITALL)!=sizeof(unsigned int)){
+    write(soc,&req,sizeof(int));
+    
+    if(recv(soc,suc_suc_ip,sizeof(unsigned int),MSG_WAITALL)!=sizeof(unsigned int)){
         perror("error al recibir remote_ip");
         return -1;
     }
