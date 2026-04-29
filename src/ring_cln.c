@@ -14,7 +14,7 @@
 #include "ring.h"
 #include "common.h"
 
-enum oper {GET_RPID,NEW_NODE,REM_SUC};
+enum oper {GET_RPID,NEW_NODE,REM_SUC,SUCSUC};
 
 static int is_initialized(void);
 static int initialize(void);
@@ -150,6 +150,21 @@ int ring_remote_successor(unsigned int remote_ip, unsigned short remote_port, un
 // retorna 0 si OK y -1 si error
 int ring_remote_successor_successor(unsigned int remote_ip, unsigned short remote_port, unsigned int *suc_suc_ip, unsigned short *suc_suc_port) {
     if (!is_initialized()) return -1; // no está inicializada
+    int soc = create_socket_cln(remote_ip,remote_port);
+    int req = htonl(SUCSUC);
+
+     if(recv(soc,suc_suc_ip,sizeof(unsigned int),MSG_WAITALL)!=sizeof(unsigned int)){
+        perror("error al recibir remote_ip");
+        return -1;
+    }
+    *suc_suc_ip = ntohl(*suc_suc_ip);
+
+    if(recv(soc,suc_suc_port,sizeof(unsigned short),MSG_WAITALL)!=sizeof(unsigned short)){
+        perror("error al recibir remote_port");
+        return -1;
+    }
+    *suc_suc_port = ntohs(*suc_suc_port);
+
     return 0;
 }
 // descarga el fichero del nodo especificado;
