@@ -64,6 +64,7 @@ void* request_hdlr(void* arg){
     //printf("Recibido request con valor %d\n",req);
 
     switch(req){
+        struct iovec iov[2];
         case GET_RPID:
             int pid = htonl(getpid());
             if(write(soc,&pid,sizeof(int))!=sizeof(int)){
@@ -85,17 +86,15 @@ void* request_hdlr(void* arg){
 
             //printf("escribe succ ip: %s\n",inet_ntoa((struct in_addr){ip}));
             ip=htonl(ip);
-            if(write(soc,&ip,sizeof(unsigned int))!=sizeof(unsigned int)){
-                perror("err write succ ip");
-                break;
-            }
             
             //printf("escribe succ port: %u\n",ntohs(port));
             port=htons(port);
-            if(write(soc,&port,sizeof(unsigned short))!=sizeof(unsigned short)){
-                perror("err write succ port");
-                break;
-            }
+
+            iov[0].iov_base=&ip;
+            iov[0].iov_len=sizeof(ip);
+            iov[1].iov_base=&port;
+            iov[1].iov_len=sizeof(port);
+            writev(soc,iov,2);
             
             //TODO guardar nuevo sucesor (IP y PORT)
             self.successor_ip=clnt_addr.sin_addr.s_addr;
@@ -107,18 +106,16 @@ void* request_hdlr(void* arg){
             unsigned int suc_ip;
             unsigned short suc_port;
             ring_successor(&suc_ip,&suc_port);
-            //le envía su suc_ip
+            //le envía su suc_ip y suc_port
             suc_ip = htonl(suc_ip);
-            if(write(soc,&suc_ip,sizeof(unsigned int))!=sizeof(unsigned int)){
-                perror("error al escribir ip de sucesor");
-                break;
-            }
-            //envia su suc_port
             suc_port = ntohs(suc_port);
-            if(write(soc,&suc_port,sizeof(unsigned short))!=sizeof(unsigned short)){
-                perror("error al escribir puerto de sucesor");
-                break;
-            }
+            
+            iov[0].iov_base = &suc_ip;
+            iov[0].iov_len = sizeof(suc_ip);
+            iov[1].iov_base = &suc_port;
+            iov[1].iov_len = sizeof(suc_port);
+
+            writev(soc,iov,2);
 
         break;
     }

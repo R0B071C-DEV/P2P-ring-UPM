@@ -52,15 +52,15 @@ int ring_init(const char *shrd_dir, unsigned int local_ip, unsigned int remote_i
         int soc,req; 
         soc = create_socket_cln(remote_ip,remote_port);
         req = htonl(NEW_NODE);
-        if(write(soc,&req,sizeof(int))!=sizeof(int)){
-            perror("error en write [write de req NEW_NODE]");
-        }
         //envía su service_port
         unsigned short s_port= *alloc_port;
-        if(write(soc,&s_port,sizeof(unsigned short))!=sizeof(unsigned short)){
-            perror("error en write [write de srv_sockt]");
-        }
-        printf("enviado service port: %d\n",ntohs(s_port));
+
+        struct iovec iov[2];
+        iov[0].iov_base=&req;
+        iov[0].iov_len=sizeof(req);
+        iov[1].iov_base=&s_port;
+        iov[1].iov_len=sizeof(s_port);
+        writev(soc,iov,2);
 
         //espera respuesta
         unsigned int nip;
