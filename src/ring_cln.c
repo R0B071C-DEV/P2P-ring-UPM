@@ -14,7 +14,7 @@
 #include "ring.h"
 #include "common.h"
 
-enum oper {GET_RPID,NEW_NODE,REM_SUC,SUCSUC};
+enum oper {GET_RPID,NEW_NODE,REM_SUC,SUCSUC,DL};
 
 static int is_initialized(void);
 static int initialize(void);
@@ -173,6 +173,45 @@ int ring_remote_successor_successor(unsigned int remote_ip, unsigned short remot
 // retorna el tamaño del fichero si OK y -1 en caso de error
 int ring_download(unsigned int remote_ip, unsigned short remote_port, const char *filename) {
     if (!is_initialized()) return -1; // no está inicializada
+    struct iovec iov[3];
+    int s = create_socket_cln(remote_ip,remote_port);
+    int req = htonl(DL);
+    size_t sizefn = strlen(filename)+1;
+    iov[0].iov_base=&req;
+    iov[0].iov_len=sizeof(req);
+    iov[1].iov_base=&sizefn;
+    iov[1].iov_len=sizeof(sizefn);
+    iov[2].iov_base=filename;
+    iov[2].iov_len=sizefn;
+    writev(s,iov,3);
+
+    //recibe tamaño de fichero y el fichero
+    off_t fsize;
+    recv(s,&fsize,sizeof(fsize),MSG_WAITALL);
+    // printf("TAM_REC: %li\n",fsize);
+    // printf("%s\n",self.myshrd_dir);
+    // printf("%s\n",filename);
+    char* route = malloc(strlen(self.myshrd_dir)+sizefn);
+    strcpy(route,self.myshrd_dir);
+    strcat(route,filename);
+    //printf("RT DE DESCARGA: %s\n",route);
+    int fd;
+    if((fd = open(route,O_CREAT|O_RDWR|O_TRUNC,0666))<0){
+        perror("Al crear archivo destino");return -1;
+    }
+    if (ftruncate(fd, fsize))
+    {
+        perror("ftruncate"); close(fd);return -1;
+    }
+    char* mp;
+    if((mp=mmap(0,fsize,PROT_WRITE,MAP_SHARED,fd,0))==MAP_FAILED){
+        perror("mmap"); close(fd); return -1;
+    }
+    if(recv(s,mp,fsize,MSG_WAITALL)!=fsize){
+        perror("Al leer fichero recibido");close(fd);
+        return -1;
+    }
+    munmap(mp, fsize);
     return 0;
 }
 // busca el fichero en el anillo dando un número máximo de saltos y devolviendo

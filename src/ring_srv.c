@@ -10,10 +10,11 @@
 #include <sys/stat.h>
 #include <sys/sendfile.h>
 #include <pthread.h>
+#include <string.h>
 #include "ring.h"
 #include "common.h"
 
-enum oper {GET_RPID,NEW_NODE,REM_SUC,SUCSUC};
+enum oper {GET_RPID,NEW_NODE,REM_SUC,SUCSUC,DL};
 
 typedef struct ring_cln
 {
@@ -33,7 +34,7 @@ struct sockaddr_in clnt_addr;
 // función para el thread que implementa la funcionalidad de servidor
 // debe recibir como argumento el socket de servicio
 void *server_thread(void *arg){
-    int s =(int)arg;
+    int s=(int)arg;
     int s_conec;
     unsigned int addr_size;
     
@@ -138,6 +139,33 @@ void* request_hdlr(void* arg){
 
             writev(soc,iov,2);
             
+        break;
+
+        case DL:
+            size_t sizefn;
+            char* filename;
+            recv(soc,&sizefn,sizeof(sizefn),MSG_WAITALL);
+            filename = malloc(sizefn);
+            recv(soc,filename,sizefn,MSG_WAITALL);
+            //printf("FILENAME RECV: %s\n",filename);
+            char* route = malloc(strlen(self.myshrd_dir)+sizefn);
+            strcpy(route,self.myshrd_dir);
+            strcat(route,filename);
+            //printf("ROUTE: %s\n",route);
+            int fd;
+            if ((fd = open(route, O_RDONLY)) < 0) {
+                perror("open");
+            }
+            struct stat st;
+            if (fstat(fd, &st) < 0) { 
+                perror("stat"); close(fd);
+            }
+
+            send(soc,&st.st_size,sizeof(st.st_size),MSG_MORE);
+            //printf("TAM_ENV: %li\n",st.st_size);
+            sendfile(soc, fd, NULL, st.st_size);
+            //printf("Enviado\n");
+
         break;
     }
     close(soc);
