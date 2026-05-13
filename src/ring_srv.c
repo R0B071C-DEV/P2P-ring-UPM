@@ -148,19 +148,21 @@ void* request_hdlr(void* arg){
             filename = malloc(sizefn);
             recv(soc,filename,sizefn,MSG_WAITALL);
             //printf("FILENAME RECV: %s\n",filename);
-            char* route = malloc(strlen(self.myshrd_dir)+sizefn);
+            char* route = malloc(strlen(self.myshrd_dir)+sizefn+1);
             strcpy(route,self.myshrd_dir);
+            strcat(route,"/");
             strcat(route,filename);
-            //printf("ROUTE: %s\n",route);
+            //printf("ROUTE SRV: %s\n",route);
             int fd;
             if ((fd = open(route, O_RDONLY)) < 0) {
                 perror("open");
+                fd=0;
+                send(soc,&fd,sizeof(int),MSG_WAITALL);
             }
             struct stat st;
             if (fstat(fd, &st) < 0) { 
                 perror("stat"); close(fd);
             }
-
             send(soc,&st.st_size,sizeof(st.st_size),MSG_MORE);
             //printf("TAM_ENV: %li\n",st.st_size);
             sendfile(soc, fd, NULL, st.st_size);

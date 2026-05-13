@@ -188,11 +188,16 @@ int ring_download(unsigned int remote_ip, unsigned short remote_port, const char
     //recibe tamaño de fichero y el fichero
     off_t fsize;
     recv(s,&fsize,sizeof(fsize),MSG_WAITALL);
-    // printf("TAM_REC: %li\n",fsize);
-    // printf("%s\n",self.myshrd_dir);
-    // printf("%s\n",filename);
-    char* route = malloc(strlen(self.myshrd_dir)+sizefn);
+    if(fsize==0){
+        fprintf(stderr,"No existe el fichero \'%s\'\n",filename);
+        return -1;
+    }
+    //printf("TAM_REC: %li\n",fsize);
+    //printf("%s\n",self.myshrd_dir);
+    //printf("%s\n",filename);
+    char* route = malloc(strlen(self.myshrd_dir)+sizefn+1);
     strcpy(route,self.myshrd_dir);
+    strcat(route,"/");
     strcat(route,filename);
     //printf("RT DE DESCARGA: %s\n",route);
     int fd;
